@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Taller de Rompecabezas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #171923;
+    --bg-alt: #1D202C;
+    --panel: #22252F;
+    --panel-border: #2E3140;
+    --gold: #E8A33D;
+    --gold-dim: #B87F2A;
+    --teal: #35A08A;
+    --teal-dim: #277567;
+    --text: #F1EBDD;
+    --text-muted: #9A96A8;
+    --danger: #D9634F;
+    --shadow: rgba(0,0,0,0.45);
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(232,163,61,0.10), transparent 55%),
+      radial-gradient(ellipse at 90% 0%, rgba(53,160,138,0.10), transparent 50%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height:100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2,h3, .display{ font-family:'Baloo 2', 'Inter', sans-serif; }
+
+  .wrap{ max-width: 920px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* ---------- Header ---------- */
+  .topline{ display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+  .piece-mark{ width:34px; height:34px; flex-shrink:0; }
+  h1.display{ font-size: 28px; font-weight:700; margin:0; letter-spacing:0.2px; }
+  .tagline{ color: var(--text-muted); font-size:14.5px; margin: 6px 0 26px; max-width: 56ch; line-height:1.5; }
+
+  /* ---------- Upload zone ---------- */
+  .dropzone{
+    border: 2px dashed #3B3E4E;
+    border-radius: 16px;
+    padding: 26px 20px;
+    display:flex; align-items:center; gap:16px;
+    background: linear-gradient(180deg, var(--panel), var(--bg-alt));
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.drag{ border-color: var(--gold); background: #262A38; }
+  .dropzone svg{ flex-shrink:0; }
+  .dropzone .dz-text b{ display:block; font-size:15.5px; margin-bottom:2px; }
+  .dropzone .dz-text span{ color: var(--text-muted); font-size:13.5px; }
+  input[type=file]{ display:none; }
+
+  /* ---------- Photo grid ---------- */
+  .grid-title{ margin: 30px 0 14px; font-size: 15px; color: var(--text-muted); font-weight:600; }
+  .photo-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+  }
+  .photo-card{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .photo-card:hover{ transform: translateY(-2px); border-color:#3B3E4E; }
+  .photo-thumb-wrap{ position:relative; aspect-ratio: 4/3; background:#14151c; }
+  .photo-thumb-wrap img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .remove-btn{
+    position:absolute; top:8px; right:8px; width:26px; height:26px; border-radius:50%;
+    background: rgba(15,13,20,0.65); border:none; color:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:15px; line-height:1;
+  }
+  .remove-btn:hover{ background: var(--danger); }
+  .photo-info{ padding: 12px 12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .photo-name{ font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .level-badge{ font-size:12px; color: var(--gold); font-weight:600; }
+  .play-btn{
+    margin-top:2px; border:none; border-radius:9px; padding:9px 12px;
+    background: var(--gold); color:#26190A; font-weight:700; font-size:13.5px;
+    cursor:pointer; font-family:inherit;
+    transition: background .12s ease;
+  }
+  .play-btn:hover{ background:#F0AF52; }
+
+  .empty-hint{ color: var(--text-muted); font-size:14px; margin-top:18px; line-height:1.6; }
+
+  /* ---------- Game screen ---------- */
+  #screen-game{ display:none; }
+  .game-topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    flex-wrap:wrap; margin-bottom:16px;
+  }
+  .back-btn{
+    background:none; border:1px solid var(--panel-border); color: var(--text);
+    padding: 8px 14px; border-radius:9px; cursor:pointer; font-family:inherit; font-size:13.5px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .back-btn:hover{ border-color: var(--gold); color: var(--gold); }
+  .level-info{ text-align:center; }
+  .level-info .lvl{ font-family:'Baloo 2'; font-size:19px; font-weight:700; }
+  .level-info .sub{ color: var(--text-muted); font-size:12.5px; margin-top:1px; }
+  .hud{ display:flex; gap:18px; align-items:center; }
+  .hud-item{ text-align:center; min-width:58px; }
+  .hud-item .n{ font-family:'Baloo 2'; font-size:18px; font-weight:700; color: var(--teal); }
+  .hud-item .l{ font-size:10.5px; color: var(--text-muted); text-transform:none; }
+
+  .toolbar{ display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .tool-btn{
+    background: var(--panel); border:1px solid var(--panel-border); color: var(--text);
+    padding:9px 14px; border-radius:9px; cursor:pointer; font-family:inherit; font-size:13px;
+    display:flex; align-items:center; gap:7px; user-select:none;
+  }
+  .tool-btn:hover{ border-color: var(--teal); }
+  .tool-btn:active, .tool-btn.holding{ background: var(--teal-dim); border-color: var(--teal); }
+
+  .stage{
+    position:relative;
+    background: #12131A;
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    overflow:auto;
+    max-height: 72vh;
+    padding: 18px;
+  }
+  .play-area{ position:relative; margin:0 auto; }
+  .board{
+    position:relative;
+    background:#0d0e13;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 10px 26px rgba(0,0,0,0.5);
+    overflow:hidden;
+  }
+  .board-guide{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.16; filter: grayscale(0.5); pointer-events:none; }
+  .board-preview{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; pointer-events:none; transition:opacity .18s ease; }
+  .board-preview.show{ opacity:1; }
+  .board-slots{ position:absolute; inset:0; pointer-events:none; }
+
+  .piece{
+    position:absolute; top:0; left:0;
+    cursor: grab;
+    filter: drop-shadow(0 5px 8px rgba(0,0,0,0.5));
+    touch-action:none;
+    transition: transform .12s ease;
+  }
+  .piece.dragging{ cursor:grabbing; filter: drop-shadow(0 10px 16px rgba(0,0,0,0.6)); transition:none; }
+  .piece.locked{ cursor:default; filter:none; }
+  .piece.pop{ animation: pop .28s ease; }
+  @keyframes pop{ 0%{ transform:scale(1.18);} 60%{ transform:scale(0.95);} 100%{ transform:scale(1);} }
+
+  /* ---------- Win modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background: rgba(10,9,14,0.72);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background: var(--panel); border:1px solid var(--panel-border); border-radius:18px;
+    padding: 30px 28px; max-width: 380px; width:100%; text-align:center;
+  }
+  .modal .icon{ font-size:40px; margin-bottom:6px; }
+  .modal h2{ font-size:22px; margin: 4px 0 6px; }
+  .modal p{ color: var(--text-muted); font-size:14px; margin: 0 0 22px; line-height:1.6;}
+  .modal-actions{ display:flex; flex-direction:column; gap:10px; }
+  .modal-actions button{
+    border:none; border-radius:10px; padding:12px; font-family:inherit; font-size:14.5px; font-weight:700;
+    cursor:pointer;
+  }
+  .btn-primary{ background: var(--gold); color:#26190A; }
+  .btn-primary:hover{ background:#F0AF52; }
+  .btn-secondary{ background: transparent; border:1px solid var(--panel-border) !important; color: var(--text); }
+  .btn-secondary:hover{ border-color: var(--text-muted) !important; }
+
+  @media (max-width: 640px){
+    h1.display{ font-size:23px; }
+    .hud{ gap:12px; }
+    .hud-item{ min-width:48px; }
+    .level-info .lvl{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topline">
+    <svg class="piece-mark" viewBox="0 0 48 48" fill="none">
+      <path d="M14 6h10a2 2 0 0 1 2 2v4.2a3.4 3.4 0 1 1 0 6.6V23a2 2 0 0 1-2 2h-4.2a3.4 3.4 0 1 0-6.6 0H9a2 2 0 0 1-2-2V13a2 2 0 0 1 2-2h4.2a3.4 3.4 0 1 0 6.6 0V8a2 2 0 0 1-2-2z" fill="#E8A33D"/>
+      <path d="M28 25h10a2 2 0 0 1 2 2v4.2a3.4 3.4 0 1 1 0 6.6V40a2 2 0 0 1-2 2H23a2 2 0 0 1-2-2v-4.2a3.4 3.4 0 1 1 0-6.6V25a2 2 0 0 1 2-2h1z" fill="#35A08A"/>
+    </svg>
+    <h1 class="display">Taller de Rompecabezas</h1>
+  </div>
+  <p class="tagline">Sube tus propias fotos y convierte cada una en un rompecabezas. Empieza fácil y ve subiendo de nivel: más piezas y formas más irregulares en cada ronda.</p>
+
+  <!-- ============ MENU SCREEN ============ -->
+  <div id="screen-menu">
+    <div class="dropzone" id="dropzone">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="dz-text">
+        <b>Sube tus fotos</b>
+        <span>Haz clic o arrastra aquí — puedes elegir todas las que quieras</span>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" multiple>
+    </div>
+
+    <div class="grid-title" id="gridTitle" style="display:none;">Tus fotos</div>
+    <div class="photo-grid" id="photoGrid"></div>
+    <p class="empty-hint" id="emptyHint">Aún no has subido ninguna foto. En cuanto subas una, aparecerá aquí lista para jugar.</p>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="screen-game">
+    <div class="game-topbar">
+      <button class="back-btn" id="backBtn">&larr; Menú</button>
+      <div class="level-info">
+        <div class="lvl" id="levelLabel">Nivel 1</div>
+        <div class="sub" id="levelSub">3×3 · 9 piezas</div>
+      </div>
+      <div class="hud">
+        <div class="hud-item"><div class="n" id="placedCount">0/9</div><div class="l">colocadas</div></div>
+        <div class="hud-item"><div class="n" id="timeCount">00:00</div><div class="l">tiempo</div></div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn" id="shuffleBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 4h3v3M21 4l-6.5 6.5M3 20l6.5-6.5M18 20h3v-3M21 20l-6.5-6.5M3 4h4l4.5 4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Revolver piezas
+      </button>
+      <button class="tool-btn" id="previewBtn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3"/></svg>
+        Mantén para ver la imagen
+      </button>
+    </div>
+
+    <div class="stage">
+      <div class="play-area" id="playArea">
+        <div class="board" id="board">
+          <img class="board-guide" id="boardGuide" alt="">
+          <img class="board-preview" id="boardPreview" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ WIN MODAL ============ -->
+<div class="modal-backdrop" id="winModal">
+  <div class="modal">
+    <div class="icon">🧩</div>
+    <h2>¡Rompecabezas completo!</h2>
+    <p id="winSummary">Terminaste el nivel 1 en 00:00.</p>
+    <div class="modal-actions">
+      <button class="btn-primary" id="nextLevelBtn">Siguiente nivel →</button>
+      <button class="btn-secondary" id="toMenuBtn">Volver al menú</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= Utilidades básicas ================= */
+const $ = sel => document.querySelector(sel);
+function uniform(min,max){ return min + Math.random()*(max-min); }
+function shuffleArr(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+function formatTime(ms){
+  const s = Math.floor(ms/1000);
+  const mm = String(Math.floor(s/60)).padStart(2,'0');
+  const ss = String(s%60).padStart(2,'0');
+  return mm+':'+ss;
+}
+function fileToDataURL(file){
+  return new Promise((resolve,reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function loadImage(src){
+  return new Promise((resolve,reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+/* ================= Geometría de piezas (curvas jigsaw) =================
+   Basado en el generador de curvas de rompecabezas de Draradech (CC0),
+   adaptado a coordenadas absolutas de canvas para recortar imágenes. */
+const RENDER_SCALE = 2;
+
+function computeCellPoints(primaryStart, baseline, sl, sw, t, a,b,c,d,e, flip, orientation){
+  const flipSign = flip ? -1 : 1;
+  const L = v => primaryStart + sl*v;
+  const W = v => baseline + sw*v*flipSign;
+  const mk = (l,w) => orientation === 'h' ? {x:l,y:w} : {x:w,y:l};
+  return {
+    p0: mk(L(0.0), W(0.0)),
+    p1: mk(L(0.2), W(a)),
+    p2: mk(L(0.5+b+d), W(-t+c)),
+    p3: mk(L(0.5-t+b), W(t+c)),
+    p4: mk(L(0.5-2*t+b-d), W(3*t+c)),
+    p5: mk(L(0.5+2*t+b-d), W(3*t+c)),
+    p6: mk(L(0.5+t+b), W(t+c)),
+    p7: mk(L(0.5+b+d), W(-t+c)),
+    p8: mk(L(0.8), W(e)),
+    p9: mk(L(1.0), W(0.0)),
+  };
+}
+
+function buildEdges(cols, rows, cw, ch, t, jitter){
+  const hEdges = []; // boundary b=1..rows-1 -> hEdges[b-1][col]
+  for (let b=1; b<rows; b++){
+    const segs = [];
+    let flip, flipold, e = uniform(-jitter,jitter);
+    flip = Math.random() > 0.5;
+    let a = e; // flipold undefined on first call -> always e
+    let bJ = uniform(-jitter,jitter), cJ = uniform(-jitter,jitter), dJ = uniform(-jitter,jitter);
+    e = uniform(-jitter,jitter);
+    for (let col=0; col<cols; col++){
+      segs.push(computeCellPoints(col*cw, b*ch, cw, ch, t, a,bJ,cJ,dJ,e, flip, 'h'));
+      flipold = flip; flip = Math.random() > 0.5;
+      a = (flip === flipold) ? -e : e;
+      bJ = uniform(-jitter,jitter); cJ = uniform(-jitter,jitter); dJ = uniform(-jitter,jitter);
+      e = uniform(-jitter,jitter);
+    }
+    hEdges.push(segs);
+  }
+  const vEdges = []; // boundary b=1..cols-1 -> vEdges[b-1][row]
+  for (let b=1; b<cols; b++){
+    const segs = [];
+    let flip, flipold, e = uniform(-jitter,jitter);
+    flip = Math.random() > 0.5;
+    let a = e;
+    let bJ = uniform(-jitter,jitter), cJ = uniform(-jitter,jitter), dJ = uniform(-jitter,jitter);
+    e = uniform(-jitter,jitter);
+    for (let row=0; row<rows; row++){
+      segs.push(computeCellPoints(row*ch, b*cw, ch, cw, t, a,bJ,cJ,dJ,e, flip, 'v'));
+      flipold = flip; flip = Math.random() > 0.5;
+      a = (flip === flipold) ? -e : e;
+      bJ = uniform(-jitter,jitter); cJ = uniform(-jitter,jitter); dJ = uniform(-jitter,jitter);
+      e = uniform(-jitter,jitter);
+    }
+    vEdges.push(segs);
+  }
+  return {hEdges, vEdges};
+}
+
+function bez(cp1,cp2,end){
+  return {type:'bezier', c1x:cp1.x, c1y:cp1.y, c2x:cp2.x, c2y:cp2.y, x:end.x, y:end.y};
+}
+
+function buildPieceCommands(r,c,cols,rows,cw,ch,hEdges,vEdges){
+  const ops = [];
+  const TL = {x:c*cw, y:r*ch}, TR = {x:(c+1)*cw, y:r*ch};
+  const BR = {x:(c+1)*cw, y:(r+1)*ch}, BL = {x:c*cw, y:(r+1)*ch};
+  ops.push({type:'move', x:TL.x, y:TL.y});
+  // arriba
+  if (r === 0) ops.push({type:'line', x:TR.x, y:TR.y});
+  else {
+    const e = hEdges[r-1][c];
+    ops.push(bez(e.p1,e.p2,e.p3)); ops.push(bez(e.p4,e.p5,e.p6)); ops.push(bez(e.p7,e.p8,e.p9));
+  }
+  // derecha
+  if (c === cols-1) ops.push({type:'line', x:BR.x, y:BR.y});
+  else {
+    const e = vEdges[c][r];
+    ops.push(bez(e.p1,e.p2,e.p3)); ops.push(bez(e.p4,e.p5,e.p6)); ops.push(bez(e.p7,e.p8,e.p9));
+  }
+  // abajo (invertido)
+  if (r === rows-1) ops.push({type:'line', x:BL.x, y:BL.y});
+  else {
+    const e = hEdges[r][c];
+    ops.push(bez(e.p8,e.p7,e.p6)); ops.push(bez(e.p5,e.p4,e.p3)); ops.push(bez(e.p2,e.p1,e.p0));
+  }
+  // izquierda (invertido)
+  if (c === 0) ops.push({type:'line', x:TL.x, y:TL.y});
+  else {
+    const e = vEdges[c-1][r];
+    ops.push(bez(e.p8,e.p7,e.p6)); ops.push(bez(e.p5,e.p4,e.p3)); ops.push(bez(e.p2,e.p1,e.p0));
+  }
+  ops.push({type:'close'});
+  return ops;
+}
+
+function playPath(ctx, ops, offX, offY){
+  for (const op of ops){
+    if (op.type === 'move') ctx.moveTo(op.x-offX, op.y-offY);
+    else if (op.type === 'line') ctx.lineTo(op.x-offX, op.y-offY);
+    else if (op.type === 'bezier') ctx.bezierCurveTo(op.c1x-offX, op.c1y-offY, op.c2x-offX, op.c2y-offY, op.x-offX, op.y-offY);
+    else if (op.type === 'close') ctx.closePath();
+  }
+}
+
+/* ================= Progresión de dificultad ================= */
+const LEVEL_TARGETS = [6, 12, 24, 40, 60, 84, 112, 140];
+function targetPiecesForLevel(level){
+  if (level <= LEVEL_TARGETS.length) return LEVEL_TARGETS[level-1];
+  return Math.min(220, LEVEL_TARGETS[LEVEL_TARGETS.length-1] + (level - LEVEL_TARGETS.length) * 20);
+}
+function jitterForLevel(level){
+  return Math.min(0.13, Math.max(0.015, level * 0.016));
+}
+function computeGrid(targetPieces, aspect){
+  let rows = Math.max(2, Math.round(Math.sqrt(targetPieces/aspect)));
+  let cols = Math.max(2, Math.round(targetPieces/rows));
+  return {rows, cols};
+}
+
+/* ================= Estado de la app ================= */
+let photos = [];          // {id, name, dataUrl, img, bestLevel}
+let currentPhoto = null;
+let currentLevel = 1;
+let puzzle = null;        // {cols, rows, total, placed, cw, ch, pad, boardW, boardH, pieces:[]}
+let zTop = 10;
+let timerId = null, startTime = 0;
+let dragging = null;      // {el, offX, offY}
+
+/* ================= Menú: subir y listar fotos ================= */
+const dropzone = $('#dropzone');
+const fileInput = $('#fileInput');
+const photoGrid = $('#photoGrid');
+const gridTitle = $('#gridTitle');
+const emptyHint = $('#emptyHint');
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+['dragover','dragenter'].forEach(evt => dropzone.addEventListener(evt, e => {
+  e.preventDefault(); dropzone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+}));
+dropzone.addEventListener('drop', e => {
+  if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+});
+
+async function handleFiles(fileList){
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  for (const file of files){
+    try{
+      const dataUrl = await fileToDataURL(file);
+      const id = 'p' + Date.now() + Math.random().toString(36).slice(2,7);
+      photos.push({ id, name: file.name.replace(/\.[^/.]+$/,''), dataUrl, img:null, bestLevel:0 });
+    } catch(err){ console.error('No se pudo leer la imagen', err); }
+  }
+  fileInput.value = '';
+  renderPhotoGrid();
+}
+
+function renderPhotoGrid(){
+  photoGrid.innerHTML = '';
+  const hasPhotos = photos.length > 0;
+  gridTitle.style.display = hasPhotos ? 'block' : 'none';
+  emptyHint.style.display = hasPhotos ? 'none' : 'block';
+
+  photos.forEach(photo => {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+
+    const thumbWrap = document.createElement('div');
+    thumbWrap.className = 'photo-thumb-wrap';
+    const img = document.createElement('img');
+    img.src = photo.dataUrl;
+    img.alt = photo.name;
+    thumbWrap.appendChild(img);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.innerHTML = '&times;';
+    removeBtn.title = 'Quitar foto';
+    removeBtn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      photos = photos.filter(p => p.id !== photo.id);
+      renderPhotoGrid();
+    });
+    thumbWrap.appendChild(removeBtn);
+
+    const info = document.createElement('div');
+    info.className = 'photo-info';
+    const name = document.createElement('div');
+    name.className = 'photo-name';
+    name.textContent = photo.name;
+    const badge = document.createElement('div');
+    badge.className = 'level-badge';
+    badge.textContent = photo.bestLevel > 0
+      ? `Completado hasta el nivel ${photo.bestLevel}`
+      : 'Sin empezar';
+    const playBtn = document.createElement('button');
+    playBtn.className = 'play-btn';
+    playBtn.textContent = photo.bestLevel > 0 ? `Jugar · Nivel ${photo.bestLevel+1}` : 'Jugar';
+    playBtn.addEventListener('click', () => startGame(photo));
+
+    info.appendChild(name);
+    info.appendChild(badge);
+    info.appendChild(playBtn);
+
+    card.appendChild(thumbWrap);
+    card.appendChild(info);
+    photoGrid.appendChild(card);
+  });
+}
+
+/* ================= Pantallas ================= */
+const screenMenu = $('#screen-menu');
+const screenGame = $('#screen-game');
+
+function showMenu(){
+  stopTimer();
+  screenGame.style.display = 'none';
+  screenMenu.style.display = 'block';
+  renderPhotoGrid();
+}
+function showGame(){
+  screenMenu.style.display = 'none';
+  screenGame.style.display = 'block';
+}
+$('#backBtn').addEventListener('click', showMenu);
+$('#toMenuBtn').addEventListener('click', () => { closeModal(); showMenu(); });
+
+/* ================= Iniciar / construir el rompecabezas ================= */
+async function startGame(photo){
+  currentPhoto = photo;
+  currentLevel = photo.bestLevel + 1;
+  if (!photo.img){
+    photo.img = await loadImage(photo.dataUrl);
+  }
+  showGame();
+  buildPuzzle();
+}
+
+function nextLevel(){
+  currentLevel += 1;
+  closeModal();
+  buildPuzzle();
+}
+
+const boardEl = $('#board');
+const boardGuide = $('#boardGuide');
+const boardPreview = $('#boardPreview');
+const playArea = $('#playArea');
+const stageEl = document.querySelector('.stage');
+
+function buildPuzzle(){
+  stopTimer();
+  // limpiar piezas anteriores
+  playArea.querySelectorAll('.piece').forEach(p => p.remove());
+
+  const img = currentPhoto.img;
+  const aspect = img.naturalWidth / img.naturalHeight;
+
+  // tamaño del tablero (logico, en px CSS) — se ajusta al ancho disponible
+  const maxBoardW = Math.min(640, Math.max(320, stageEl.clientWidth - 40));
+  let boardW = maxBoardW;
+  let boardH = boardW / aspect;
+  const maxBoardH = window.innerHeight * 0.5;
+  if (boardH > maxBoardH){ boardH = maxBoardH; boardW = boardH * aspect; }
+  boardW = Math.round(boardW); boardH = Math.round(boardH);
+
+  const target = targetPiecesForLevel(currentLevel);
+  const {rows, cols} = computeGrid(target, aspect);
+  const total = rows*cols;
+  const t = uniform(0.14, 0.18);
+  const jitter = jitterForLevel(currentLevel);
+
+  // canvas de trabajo a resolucion alta (para recortes nitidos)
+  const workW = boardW * RENDER_SCALE, workH = boardH * RENDER_SCALE;
+  const work = document.createElement('canvas');
+  work.width = workW; work.height = workH;
+  const wctx = work.getContext('2d');
+  // cover-fit del origen
+  const srcAspect = img.naturalWidth / img.naturalHeight;
+  const dstAspect = workW / workH;
+  let sw, sh, sx, sy;
+  if (srcAspect > dstAspect){
+    sh = img.naturalHeight; sw = sh * dstAspect;
+    sx = (img.naturalWidth - sw)/2; sy = 0;
+  } else {
+    sw = img.naturalWidth; sh = sw / dstAspect;
+    sx = 0; sy = (img.naturalHeight - sh)/2;
+  }
+  wctx.drawImage(img, sx, sy, sw, sh, 0, 0, workW, workH);
+
+  const cw = workW/cols, ch = workH/rows;
+  const {hEdges, vEdges} = buildEdges(cols, rows, cw, ch, t, jitter);
+  const pad = Math.ceil(Math.max(cw,ch) * 0.65);
+
+  // tablero: tamaño y guias
+  boardEl.style.width = boardW + 'px';
+  boardEl.style.height = boardH + 'px';
+  boardGuide.src = currentPhoto.dataUrl;
+  boardPreview.src = currentPhoto.dataUrl;
+  playArea.style.width = boardW + 'px';
+
+  // disposicion de bandeja (piezas dispersas)
+  const pieceLogicalW = (cw + 2*pad) / RENDER_SCALE;
+  const pieceLogicalH = (ch + 2*pad) / RENDER_SCALE;
+  const cellSize = Math.max(pieceLogicalW, pieceLogicalH) + 12;
+  const trayCols = Math.max(1, Math.floor(boardW/cellSize));
+  const trayRows = Math.ceil(total/trayCols);
+  const trayTop = boardH + 26;
+  const trayHeight = trayRows*cellSize;
+  playArea.style.height = (trayTop + trayHeight + 10) + 'px';
+
+  const cellOrder = shuffleArr(Array.from({length: trayCols*trayRows}, (_,i) => i));
+
+  puzzle = { cols, rows, total, placed:0, cw, ch, pad, boardW, boardH, pieces: [] };
+
+  let idx = 0;
+  for (let r=0; r<rows; r++){
+    for (let c=0; c<cols; c++){
+      const ops = buildPieceCommands(r,c,cols,rows,cw,ch,hEdges,vEdges);
+      const originX = c*cw - pad, originY = r*ch - pad;
+      const devW = cw + 2*pad, devH = ch + 2*pad;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(devW);
+      canvas.height = Math.round(devH);
+      canvas.style.width = (devW/RENDER_SCALE) + 'px';
+      canvas.style.height = (devH/RENDER_SCALE) + 'px';
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      ctx.beginPath();
+      playPath(ctx, ops, originX, originY);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(work, originX, originY, devW, devH, 0, 0, devW, devH);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      playPath(ctx, ops, originX, originY);
+      ctx.closePath();
+      ctx.lineWidth = 1.6 * RENDER_SCALE;
+      ctx.strokeStyle = 'rgba(10,8,14,0.55)';
+      ctx.stroke();
+      ctx.lineWidth = 0.8 * RENDER_SCALE;
+      ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+      ctx.stroke();
+      ctx.restore();
+
+      const pieceEl = document.createElement('div');
+      pieceEl.className = 'piece';
+      pieceEl.style.width = (devW/RENDER_SCALE) + 'px';
+      pieceEl.style.height = (devH/RENDER_SCALE) + 'px';
+      pieceEl.appendChild(canvas);
+
+      const solvedX = originX/RENDER_SCALE, solvedY = originY/RENDER_SCALE;
+
+      const cellIdx = cellOrder[idx];
+      const cx = cellIdx % trayCols, cy = Math.floor(cellIdx/trayCols);
+      const jx = (Math.random()-0.5) * cellSize * 0.3;
+      const jy = (Math.random()-0.5) * cellSize * 0.3;
+      const trayX = cx*cellSize + (cellSize-pieceLogicalW)/2 + jx;
+      const trayY = trayTop + cy*cellSize + (cellSize-pieceLogicalH)/2 + jy;
+
+      pieceEl.style.left = trayX + 'px';
+      pieceEl.style.top = trayY + 'px';
+      pieceEl.style.zIndex = zTop++;
+
+      const pieceData = { r, c, el: pieceEl, solvedX, solvedY, locked:false };
+      pieceEl.addEventListener('pointerdown', ev => onPointerDown(ev, pieceData));
+
+      playArea.appendChild(pieceEl);
+      puzzle.pieces.push(pieceData);
+      idx++;
+    }
+  }
+
+  updateHUD();
+  $('#levelLabel').textContent = 'Nivel ' + currentLevel;
+  $('#levelSub').textContent = `${cols}×${rows} · ${total} piezas`;
+  startTimer();
+}
+
+/* ================= Arrastrar y soltar ================= */
+const SNAP_DIST = 22;
+
+function onPointerDown(ev, piece){
+  if (piece.locked) return;
+  ev.preventDefault();
+  const el = piece.el;
+  el.setPointerCapture(ev.pointerId);
+  const rect = playArea.getBoundingClientRect();
+  const curLeft = parseFloat(el.style.left);
+  const curTop = parseFloat(el.style.top);
+  dragging = {
+    piece,
+    offX: (ev.clientX - rect.left) - curLeft,
+    offY: (ev.clientY - rect.top) - curTop
+  };
+  el.classList.add('dragging');
+  el.style.zIndex = zTop++;
+
+  const move = mv => {
+    if (!dragging) return;
+    const r2 = playArea.getBoundingClientRect();
+    let x = (mv.clientX - r2.left) - dragging.offX;
+    let y = (mv.clientY - r2.top) - dragging.offY;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  };
+  const up = () => {
+    el.removeEventListener('pointermove', move);
+    el.removeEventListener('pointerup', up);
+    el.classList.remove('dragging');
+    if (dragging){
+      const p = dragging.piece;
+      const curX = parseFloat(el.style.left), curY = parseFloat(el.style.top);
+      const dx = curX - p.solvedX, dy = curY - p.solvedY;
+      if (Math.sqrt(dx*dx + dy*dy) < SNAP_DIST){
+        el.style.left = p.solvedX + 'px';
+        el.style.top = p.solvedY + 'px';
+        el.classList.add('locked','pop');
+        el.style.zIndex = 5;
+        p.locked = true;
+        puzzle.placed++;
+        updateHUD();
+        checkWin();
+      }
+    }
+    dragging = null;
+  };
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerup', up);
+}
+
+/* ================= HUD, temporizador, victoria ================= */
+function updateHUD(){
+  $('#placedCount').textContent = `${puzzle.placed}/${puzzle.total}`;
+}
+function startTimer(){
+  startTime = Date.now();
+  $('#timeCount').textContent = '00:00';
+  timerId = setInterval(() => {
+    $('#timeCount').textContent = formatTime(Date.now()-startTime);
+  }, 1000);
+}
+function stopTimer(){
+  if (timerId){ clearInterval(timerId); timerId = null; }
+}
+function checkWin(){
+  if (puzzle.placed === puzzle.total){
+    stopTimer();
+    currentPhoto.bestLevel = Math.max(currentPhoto.bestLevel, currentLevel);
+    const elapsed = formatTime(Date.now()-startTime);
+    $('#winSummary').textContent = `Terminaste el nivel ${currentLevel} (${puzzle.cols}×${puzzle.rows} piezas) en ${elapsed}.`;
+    $('#winModal').classList.add('show');
+  }
+}
+function closeModal(){ $('#winModal').classList.remove('show'); }
+$('#nextLevelBtn').addEventListener('click', nextLevel);
+
+/* ================= Herramientas: revolver / vista previa ================= */
+$('#shuffleBtn').addEventListener('click', () => {
+  if (!puzzle) return;
+  const boardW = puzzle.boardW, boardH = puzzle.boardH;
+  const loose = puzzle.pieces.filter(p => !p.locked);
+  const cellSize = 70;
+  const trayCols = Math.max(1, Math.floor(boardW/cellSize));
+  const cellOrder = shuffleArr(Array.from({length: Math.max(trayCols*Math.ceil(loose.length/trayCols),1)}, (_,i) => i));
+  loose.forEach((p, i) => {
+    const cellIdx = cellOrder[i];
+    const cx = cellIdx % trayCols, cy = Math.floor(cellIdx/trayCols);
+    const jx = (Math.random()-0.5) * cellSize * 0.3;
+    const jy = (Math.random()-0.5) * cellSize * 0.3;
+    p.el.style.left = (cx*cellSize + jx) + 'px';
+    p.el.style.top = (boardH + 26 + cy*cellSize + jy) + 'px';
+  });
+});
+
+const previewBtn = $('#previewBtn');
+function showPreview(){ boardPreview.classList.add('show'); previewBtn.classList.add('holding'); }
+function hidePreview(){ boardPreview.classList.remove('show'); previewBtn.classList.remove('holding'); }
+previewBtn.addEventListener('pointerdown', showPreview);
+previewBtn.addEventListener('pointerup', hidePreview);
+previewBtn.addEventListener('pointerleave', hidePreview);
+previewBtn.addEventListener('pointercancel', hidePreview);
+
+/* ================= Arranque ================= */
+showMenu();
+
+})();
+</script>
+</body>
+</html>
